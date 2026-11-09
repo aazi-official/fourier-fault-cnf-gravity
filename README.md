@@ -69,4 +69,4 @@ The legacy `--models` option does not truncate the source dataset; the complete 
 - `train_multi_fault_cnf.py`, `train_nf_prior.py`: conditional training and spline-flow construction.
 - `gravity_forward.py`: cell gravity kernel.
 
-This repository is a private research snapshot. No redistribution license is granted.
+This repository is a research snapshot. No redistribution license is granted.
