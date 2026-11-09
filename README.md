@@ -20,20 +20,9 @@ Training minimizes conditional negative log likelihood with AdamW (learning rate
 
 Inference conditions the flow on the standardized observation, samples latent normal vectors and transforms them into geological parameters. Here 4,000 samples were evaluated with the hard geological forward model. The displayed reconstruction is the **minimum data-misfit sample**, not the maximum CNF-density/MAP sample. No SVGD or geological rejection is applied to these inference draws. Mean and variance are pixelwise statistics over all draws, including geometrically invalid draws; they are not guaranteed calibrated posterior uncertainty.
 
-## Traditional comparison and interpretation
+## Single-fault result
 
-The baseline fixes the same density contrasts but estimates two interface depths independently in each of 80 columns (160 unknowns). A softmax thickness parameterization enforces three positive layer thicknesses summing to 5 km, with a 20 m minimum thickness. It uses the same cell gravity kernel, with continuous fractional cell occupation at interfaces, and squared first-difference interface smoothing.
-
-Positive regularization strengths {0.001, 0.01, 0.1, 1, 10} are compared using every fifth station as held-out validation data and three independently initialized flat-interface models. Mean held-out error selects λ=0.01; the final solution is refit to all stations and selected by the penalized objective. Neither truth nor the CNF model initializes or selects the baseline.
-
-Relative data misfit is ||g_pred - g_obs||₂ / ||g_obs||₂ over all 101 stations.
-
-| Method | Relative data misfit | Density-image RMSE (g/cm³) |
-| --- | ---: | ---: |
-| CNF minimum-misfit sample | 0.3751% | 0.1163 |
-| Smoothed traditional interfaces | 0.0115% | 0.1322 |
-
-The traditional model fits gravity more closely, while the CNF reconstruction has lower density-image error in this example. This illustrates non-uniqueness and the value of the combined structural parameterization and learned conditional distribution. It does not isolate the benefit of CNF alone, establish universal superiority or equalize computational budgets. The traditional fractional-cell and CNF hard-raster interface representations also differ.
+The left column shows the true density model and its synthetic gravity observation. The right column shows the CNF draw with the lowest relative gravity misfit among 4,000 draws and its predicted response at the same 101 stations. Its relative L2 gravity misfit is **0.3751%** and its density-image RMSE is **0.1163 g/cm³**.
 
 ## Reproduction
 
@@ -44,6 +33,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python verify_case.py
+python plot_case.py
 python sample_case.py --samples 4000 --seed 20260918
 ```
 
@@ -57,23 +47,12 @@ python train_multi_fault_cnf.py --n-faults 1 --source data/training --out runs/r
 
 The legacy `--models` option does not truncate the source dataset; the complete supplied dataset is used. The geological utility retains generic event handling, but only the single-fault data/checkpoint is supplied here.
 
-To rerun the traditional benchmark (potentially time-consuming):
-
-```bash
-python boundary_tv_case20.py --smooth
-```
-
-This writes a new `boundary_smooth_case20_20260930` directory and refuses to overwrite an existing run. Archived outputs remain in `results/`. The 0.1 mGal residual scale in this baseline is a weighting convention, not added noise in the saved observation.
-
 ## Files
 
 - `data/case_20.npz`: archived example, sampled parameters, density images, predictions and diagnostics.
 - `data/training/`: valid parameter dataset and original split indices.
 - `checkpoints/conditional_nf.pt`: trained model and normalization, with local source path removed.
-- `results/`: archived traditional solution, numerical report and comparison figures.
+- `results/`: single-fault comparison figure and CNF metrics.
 - `fourier_fault_prior.py`, `multi_fault_prior.py`: geological construction and validity checks.
 - `train_multi_fault_cnf.py`, `train_nf_prior.py`: conditional training and spline-flow construction.
 - `gravity_forward.py`: cell gravity kernel.
-- `boundary_tv_case20.py`: independently initialized traditional inversion.
-
-Training and long optimization have not been rerun during packaging. Saved-result reconstruction and fresh small-batch conditional sampling are the packaging checks; full reproducibility can depend on library versions and hardware.
